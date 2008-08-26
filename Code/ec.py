@@ -1,13 +1,15 @@
+#! /usr/bin/env python
+# -*- coding: utf8 -*-
+
 import copy
 import modular
 import math
 
-# VCS information
-__revision__ = "$Revision$"
-__author__   = "Alexandre Coster <acoster at inf.ufrgs.br>"
-__id__       = "$Id$"
-__date__     = "$Date$"
-__headurl__  = "$HeadURL$"
+# $Id$
+__version__   = "$Revision$"
+__author__    = "Alexandre Coster"
+__contact__   = "acoster at inf dot ufrgs dot br"
+__copyright__ = "Cop  yright (C) 2008 by  Alexandre Coster"
 
 class CECPoint(object):
   """
@@ -16,6 +18,8 @@ class CECPoint(object):
  
   def __init__(self, x, y, curve, infinity = False):
     """
+    Constructor for a point object.
+    
     @param x: x coordinate of the point.
     @param y: y coordinate of the point.
     @param curve: cuve over which the point is defined.
@@ -23,7 +27,9 @@ class CECPoint(object):
     
     @type x: C{long}, C{int} or L{CModInt}
     @type y: C{long}, C{int} or L{CModInt}
-    @type curve: L{CEllipticCurvePrime}    
+    @type curve: L{CEllipticCurvePrime}
+    @type infinity: C{int} or C{bool}
+    @rtype: L{CECPoint}
     """
   
     if not isinstance(x, modular.CModInt):
@@ -41,6 +47,11 @@ class CECPoint(object):
   
  # OPERATOR OVERLOAD/SPECIAL METHODS ###########################################################################
   def __repr__(self):
+    """
+    Returns a string representation of the point.
+    
+    @rtype: C{str}
+    """
     return "(%d, %d)" % (self.__x, self.__y)
     
   def __add__(self, right):
@@ -93,18 +104,34 @@ class CECPoint(object):
   def x(self):
     return self.__x
   x = property(x)
+  """
+  Point's x coordinate
+  @type: L{CModInt}
+  """
   
   def y(self):
     return self.__y
   y = property(y)
+  """
+  Point's y coordinate
+  @type: L{CModInt}
+  """
   
   def infinity(self):
     return self.__infinity
   infinity = property(infinity)
+  """
+  True if the point is "at infinity", false other
+  @type: C{bool}
+  """
   
   def curve(self):
     return self.__curve
   curve = property(curve)
+  """
+  Cuver over which the point is defined.
+  @type: L{CEllipticCurvePrime}
+  """
 
 class CEllipticCurvePrime(object): 
   def __init__(self, a, b, mod):

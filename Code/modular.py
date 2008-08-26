@@ -1,11 +1,13 @@
+#! /usr/bin/env python
+# -*- coding: utf8 -*-
+  
 import math
 
-# VCS information
-__revision__ = "$Revision$"
-__author__   = "Alexandre Coster <acoster at inf.ufrgs.br>"
-__id__       = "$Id$"
-__date__     = "$Date$"
-__headurl__  = "$HeadURL$"
+# $Id$
+__version__   = "$Revision$"
+__author__    = "Alexandre Coster"
+__contact__   = "acoster at inf dot ufrgs dot br"
+__copyright__ = "Cop  yright (C) 2008 by  Alexandre Coster"
 
 class CModInt(object):
   __unsupported_types = (float, str)
