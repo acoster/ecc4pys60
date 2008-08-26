@@ -2,6 +2,7 @@ import math
 
 # VCS information
 __revision__ = "$Revision$"
+__author__   = "Alexandre Coster <acoster at inf.ufrgs.br>"
 __id__       = "$Id$"
 __date__     = "$Date$"
 __headurl__  = "$HeadURL$"
@@ -54,7 +55,7 @@ class CModInt(object):
       return CModInt(self.__n + right.n, self.__mod)
     
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for +: CModInt and %s" % (right.__class__, ))
+      return NotImplemented
       
     return CModInt(self.__n + right, self.__mod)
     
@@ -65,7 +66,7 @@ class CModInt(object):
       return CModInt(self.__mod + self.__n - right.n, self.__mod)
     
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for -: CModInt and %s" % (right.__class__, ))
+      return NotImplemented
       
     return CModInt(self.__mod + self.__n - right, self.__mod)
   
@@ -76,7 +77,7 @@ class CModInt(object):
       return CModInt(self.__n * right.n, self.__mod)
     
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for -: CModInt and %s" % (right.__class__, ))
+      return NotImplemented
     
     return CModInt(self.__n * right, self.__mod)
   
@@ -90,7 +91,7 @@ class CModInt(object):
       return CModInt(sqrt(self.__n, self.__mod), self.__mod)
       
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for -: CModInt and %s" % (right.__class__, ))
+      return NotImplemented
     
     if right < 0:
       return CModInt(power(inverse(self.__n, self.__mod), -right, self.__mod), self.__mod)
@@ -133,10 +134,9 @@ class CModInt(object):
       self.__n = (right.n + self.__n) % self.__mod
     
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for -: CModInt and %s" % (right.__class__, ))  
+      return NotImplemented
     
-    self.__n = (right + self.__n) % self.__mod
-    
+    self.__n = (right + self.__n) % self.__mod    
   
   def __isub__(self, right):
     if isinstance(right, CModInt):
@@ -145,7 +145,7 @@ class CModInt(object):
       self.__n = (self.__mod + self.__n - right.n) % self.__mod
     
     if right.__class__ in self.__unsupported_types:
-      raise TypeError("unsupported operand types for -: CModInt and %s" % (right.__class__, ))
+      return NotImplemented
     
     self.__n = (self.__mod + self.__n - right) % self.__mod
 # END OF CLASS #################################################################################################
