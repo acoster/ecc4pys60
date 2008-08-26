@@ -9,7 +9,7 @@ import math
 __version__   = "$Revision$"
 __author__    = "Alexandre Coster"
 __contact__   = "acoster at inf dot ufrgs dot br"
-__copyright__ = "Cop  yright (C) 2008 by  Alexandre Coster"
+__copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
 
 class CECPoint(object):
   """
