@@ -16,19 +16,19 @@ class CECPoint(object):
   Representation of a point (x, y) over an elliptic curve modulo G.
   """
  
-  def __init__(self, x, y, curve, infinity = False):
+  def __init__(self, x, y, curve, zero = False):
     """
     Constructor for a point object.
     
     @param x: x coordinate of the point.
     @param y: y coordinate of the point.
     @param curve: cuve over which the point is defined.
-    @param infinity: defined C{True} if this is the "point at infinity".
+    @param zero: defined C{True} if this is "0".
     
     @type x: C{long}, C{int} or L{CModInt}
     @type y: C{long}, C{int} or L{CModInt}
     @type curve: L{CEllipticCurvePrime}
-    @type infinity: C{int} or C{bool}
+    @type zero: C{int} or C{bool}
     @rtype: L{CECPoint}
     """
   
@@ -42,10 +42,10 @@ class CECPoint(object):
     else:
       self.__y = y
     
-    self.__curve    = curve
-    self.__infinity = infinity
+    self.__curve = curve
+    self.__zero  = zero
   
- # OPERATOR OVERLOAD/SPECIAL METHODS ###########################################################################
+ # SPECIAL METHODS #############################################################################################
   def __repr__(self):
     """
     Returns a string representation of the point.
@@ -54,7 +54,24 @@ class CECPoint(object):
     """
     return "(%d, %d)" % (self.__x, self.__y)
     
+# UNARY OPERATORS ##############################################################################################
+  def __neg__(self):
+    """
+    Returns the additive inverse of a point.
+    
+    @rtype: L{CECPoint}
+    """
+    return CECPoint(self.__x, -self.__y, self.__curve, self.__zero)
+
+# BINARY OPERATORS #############################################################################################    
   def __add__(self, right):
+    """
+    Returns the resulting point of C{self} + C{right}.
+    
+    @param right: right-side of operation
+    @type right: L{CECPoint}
+    @rtype: L{CECPoint}
+    """
     if not isinstance(right, CECPoint):
       raise ValueError("Right of operation must be of type CECPoint!")
     
@@ -63,11 +80,11 @@ class CECPoint(object):
     
     m = None
     
-    if self.__infinity:
-      return CECPoint(right.x, -right.y, self.__curve, right.infinity)
+    if self.__zero:
+      return CECPoint(right.x, right.y, self.__curve, right.zero)
     
-    if right.infinity:
-      return CECPoint(self.__x, -self.__y, self.__curve, self.__infinity)
+    if right.zero:
+      return CECPoint(self.__x, self.__y, self.__curve, self.__zero)
     
     if self == right:
       if self.y == 0:
@@ -84,6 +101,13 @@ class CECPoint(object):
     return CECPoint(x, y, self.__curve)
     
   def __mul__(self, right):   
+    """
+    Returns the resulting point of C{self} * C{right}.
+    
+    @param right: right-side of operation
+    @type right: C{int} or C{long}
+    @rtype: L{CECPoint}
+    """
     if isinstance(right, modular.CModInt):
       if right.mod != self.__curve.mod:
         raise ValueError("Point has different modulo than curve!")
@@ -92,6 +116,9 @@ class CECPoint(object):
     
     if isinstance(right, float):
       return NotImplemented
+    
+    if right == 0:
+      return CECPoint(0, 0, self.__curve, True)
     
     if right == 1:
       return copy.copy(self)
@@ -117,11 +144,11 @@ class CECPoint(object):
   @type: L{CModInt}
   """
   
-  def infinity(self):
-    return self.__infinity
-  infinity = property(infinity)
+  def zero(self):
+    return self.__zero
+  zero = property(zero)
   """
-  True if the point is "at infinity", false other
+  True if the point is "zero", false otherwise.
   @type: C{bool}
   """
   
@@ -142,6 +169,20 @@ class CEllipticCurvePrime(object):
     # REVIEW condition for cuves over a prime field
     #if (4 * modular.power(a, 3, mod) + 27 * modular.power(b, 2, mod)) % mod == 0:
     #  raise ValueError("4a^3 + 27b^2 == 0")
+    
+  def pointIsInCurve(self, point):
+    """
+    Checks if the given point sits in the curve.
+    
+    @param point: Point that we want to check.
+    @type point: L{CECPoint}
+    @rtype: C{bool}
+    """
+    
+    if not isinstance(point, CECPoint):
+      raise TypeError("point should be of type CECPoint, not %s" % (point.__class__,))
+    
+    return point.y**2 == (point.x**3 + self.__a * point.x + self.__b)
   
   def __repr__(self):
     return "y**2 == x**3 + %d * x + %d (mod %d)" % (self.__a, self.__b, self.__mod)

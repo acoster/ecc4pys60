@@ -10,7 +10,15 @@ __contact__   = "acoster at inf dot ufrgs dot br"
 __copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
 
 class CModInt(object):
-  __unsupported_types = (float, str)
+  """
+  Convenience class to integer arithmetic congruent to a certain modulo. Most arithmetic operations (at least
+  those that are useful to us) are overloaded, thus allowing transparent use of class instances in expressions.
+  """
+
+  __supported_types(int, long)
+  """
+  Classes that are supported in overloaded methods.
+  """
 
   def __init__(self, n, mod):
     self.__mod = mod
@@ -47,7 +55,7 @@ class CModInt(object):
     
 # UNARY OPERATORS ##############################################################################################
   def __neg__(self):
-    return CModInt(-self.__n, self.__mod)  
+    return CModInt( self.__mod - self.__n, self.__mod)  
   
 # ARITHIMETIC OPERATORS ######################################################################################## 
   def __add__(self, right):
@@ -56,7 +64,7 @@ class CModInt(object):
         raise ValueError("Integers are not congruent to same modulo!")
       return CModInt(self.__n + right.n, self.__mod)
     
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
       
     return CModInt(self.__n + right, self.__mod)
@@ -67,7 +75,7 @@ class CModInt(object):
         raise ValueError("Integers are not congruent to same modulo!")
       return CModInt(self.__mod + self.__n - right.n, self.__mod)
     
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
       
     return CModInt(self.__mod + self.__n - right, self.__mod)
@@ -78,7 +86,7 @@ class CModInt(object):
         raise ValueError("Integers are not congruent to same modulo!")
       return CModInt(self.__n * right.n, self.__mod)
     
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
     
     return CModInt(self.__n * right, self.__mod)
@@ -88,15 +96,19 @@ class CModInt(object):
       if self.__mod != right.mod:
         raise ValueError("Integers are not congruent to same modulo!")
       return self.__pow__(right.n)
-      
+     
+    #unique case where x**(float) is accepted.
     if right == 0.5:
       return CModInt(sqrt(self.__n, self.__mod), self.__mod)
       
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
     
     if right < 0:
       return CModInt(power(inverse(self.__n, self.__mod), -right, self.__mod), self.__mod)
+      
+    if right == 0:
+      return CModInt(1, self.__mod)
       
     return CModInt(power(self.__n, right, self.__mod), self.__mod)
     
