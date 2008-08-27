@@ -15,7 +15,7 @@ class CModInt(object):
   those that are useful to us) are overloaded, thus allowing transparent use of class instances in expressions.
   """
 
-  __supported_types(int, long)
+  __supported_types = (int, long)
   """
   Classes that are supported in overloaded methods.
   """
@@ -91,7 +91,7 @@ class CModInt(object):
     
     return CModInt(self.__n * right, self.__mod)
   
-  def __pow__(self, right):
+  def __pow__(self, right, modulo=None):
     if isinstance(right, CModInt):
       if self.__mod != right.mod:
         raise ValueError("Integers are not congruent to same modulo!")
@@ -146,8 +146,9 @@ class CModInt(object):
       if self.__mod != right.mod:
         raise ValueError("Integers are not congruent to same modulo!")
       self.__n = (right.n + self.__n) % self.__mod
+      return self
     
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
     
     self.__n = (right + self.__n) % self.__mod    
@@ -156,12 +157,36 @@ class CModInt(object):
     if isinstance(right, CModInt):
       if self.__mod != right.mod:
         raise ValueError("Integers are not congruent to same modulo!")
+      
       self.__n = (self.__mod + self.__n - right.n) % self.__mod
+      return self
     
-    if right.__class__ in self.__unsupported_types:
+    if right.__class__ not in self.__supported_types:
       return NotImplemented
     
     self.__n = (self.__mod + self.__n - right) % self.__mod
+    return self
+    
+  def __ipow__(self, right, modulo=None):
+    if isinstance(right, CModInt):
+      if self.__mod != right.mod:
+        raise ValueError("Integers are not congruent to same modulo!")
+      right = right.n
+    
+    if right == 0.5:
+      self.__n = sqrt(self.__n, self.__mod)
+    
+    if right.__class__ not in self.__supported_types:
+      return NotImplemented
+    
+    if right < 0:
+      self.__n = power(inverse(self.__n, self.__mod), -right, self.__mod)
+      
+    if right > 1:
+      self.__n = power(self.__n, right, self.__mod)
+    
+    return self
+  
 # END OF CLASS #################################################################################################
 
 def gcd(a, b):

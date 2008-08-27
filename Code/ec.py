@@ -31,7 +31,7 @@ class CECPoint(object):
     @type zero: C{int} or C{bool}
     @rtype: L{CECPoint}
     """
-  
+  	
     if not isinstance(x, modular.CModInt):
       self.__x = modular.CModInt(x, curve.mod)
     else:
@@ -44,6 +44,9 @@ class CECPoint(object):
     
     self.__curve = curve
     self.__zero  = zero
+    
+    if not curve.pointIsInCurve(self):
+      raise ValueError("Point is not valid!")
   
  # SPECIAL METHODS #############################################################################################
   def __repr__(self):
@@ -62,7 +65,7 @@ class CECPoint(object):
     @rtype: L{CECPoint}
     """
     return CECPoint(self.__x, -self.__y, self.__curve, self.__zero)
-
+	
 # BINARY OPERATORS #############################################################################################    
   def __add__(self, right):
     """
@@ -160,10 +163,27 @@ class CECPoint(object):
   @type: L{CEllipticCurvePrime}
   """
 
+
 class CEllipticCurvePrime(object): 
+  """
+  Abstraction of an Elliptic Curve over a prime field. It is defined as M{y**2 = x**3  + ax + b (mod p)}.
+  """
+  
   def __init__(self, a, b, mod):
-    self.__a    = modular.CModInt(a, mod)
-    self.__b    = modular.CModInt(b, mod)
+    """
+    Instantiates an elliptic curve over a prime field.
+    
+    @param a: The M{a} constant.
+    """
+    if not isinstance(a, modular.CModInt):
+      self.__a = modular.CModInt(a, mod)
+    else:
+      self.__a = a
+    
+    if not isinstance(b, modular.CModInt):
+      self.__b = modular.CModInt(b, mod)
+    else:
+      self.__b = b
     self.__mod  = mod
     
     # REVIEW condition for cuves over a prime field
@@ -185,6 +205,9 @@ class CEllipticCurvePrime(object):
     return point.y**2 == (point.x**3 + self.__a * point.x + self.__b)
   
   def __repr__(self):
+    """
+    String representation function.
+    """
     return "y**2 == x**3 + %d * x + %d (mod %d)" % (self.__a, self.__b, self.__mod)
     
   def __eq__(self, right):
@@ -198,8 +221,12 @@ class CEllipticCurvePrime(object):
     if not isinstance(x, modular.CModInt):
       x = modular.CModInt(x, self.__mod)
     
-    y = x**3 + self.__a * x + self.__b
-    y = y**0.5
+    # this way causes less crap in memory
+    y   = x**2
+    y  += self.__a
+    y  *= x
+    y  += self.__b
+    y **= 2
     
     return CECPoint(x, y, self)
 
