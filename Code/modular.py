@@ -21,6 +21,15 @@ class CModInt(object):
   """
 
   def __init__(self, n, mod):
+    """
+    Instantiates "n modulo mod".
+    
+    @param n: The integer.
+    @param mod: The modulo.
+    @type n:   C{int} or C{long}
+    @type mod: C{int} or C{long}
+    """
+    
     self.__mod = mod
     
     if n < 0:
@@ -35,15 +44,29 @@ class CModInt(object):
   def n(self):
     return self.__n
   n = property(n)
+  """
+  Value (as a scalar value)
+  @type C{int} or C{long}
+  """
   
   def mod(self):
     return self.__mod
   mod = property(mod)
-
+  """
+  Modulo.
+  @type C{int} or C{long}
+  """
+  
 # COMPARSION OPERATORS #########################################################################################      
   def __eq__(self, right):
     if isinstance(right, CModInt):
       return self.__mod == right.mod and self.__n == right.n
+    
+    if right == None:
+      return False
+    
+    if right < 0:
+      right += self.__mod
     return self.__n == right
     
 # "CAST" OPERATORS #############################################################################################
@@ -99,7 +122,14 @@ class CModInt(object):
      
     #unique case where x**(float) is accepted.
     if right == 0.5:
-      return CModInt(sqrt(self.__n, self.__mod), self.__mod)
+      result = sqrt(self.__n, self.__mod)
+      if result == None:
+        return None
+      
+      result = CModInt(result, self.__mod)
+      if result ** 2 == (-result)**2:
+        return result
+      return None
       
     if right.__class__ not in self.__supported_types:
       return NotImplemented
@@ -175,6 +205,10 @@ class CModInt(object):
     
     if right == 0.5:
       self.__n = sqrt(self.__n, self.__mod)
+      
+      if self.__n == None:
+        return None
+      return self
     
     if right.__class__ not in self.__supported_types:
       return NotImplemented
@@ -240,7 +274,8 @@ def power(x, y, n):
 
 def sqrt(x, p):
   if p % 4 == 3:
-    return power(x, (p + 1) / 4, p)
+    result = power(x, (p + 1) / 4, p)
+    return result
   else:
     num = range(p)
     num.reverse()
@@ -248,3 +283,10 @@ def sqrt(x, p):
     for i in num:
       if i**2 % p == x % p:
         return i
+
+def Test():        
+  res =  CModInt(262549507608824236942050798512313862128808914287336655342, 6277101735386680763835789423207666416083908700390324961279)**0.5
+  print res
+  print -res
+  print (res)**2
+  print CModInt(262549507608824236942050798512313862128808914287336655342, 6277101735386680763835789423207666416083908700390324961279)

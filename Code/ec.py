@@ -46,7 +46,7 @@ class CECPoint(object):
     self.__zero  = zero
     
     if not curve.pointIsInCurve(self):
-      raise ValueError("Point is not valid!")
+      print "Point is not valid!"
   
  # SPECIAL METHODS #############################################################################################
   def __repr__(self):
@@ -55,7 +55,9 @@ class CECPoint(object):
     
     @rtype: C{str}
     """
-    return "(%d, %d)" % (self.__x, self.__y)
+    if self.__zero:
+      return "(0, 0, True)"
+    return "(%d, %d, False)" % (self.__x, self.__y)
     
 # UNARY OPERATORS ##############################################################################################
   def __neg__(self):
@@ -81,6 +83,7 @@ class CECPoint(object):
     if self.__curve != right.curve:
       raise ValueError("Points must be defined over the same curve!")
     
+    # "Declaring" the var.
     m = None
     
     if self.__zero:
@@ -89,19 +92,20 @@ class CECPoint(object):
     if right.zero:
       return CECPoint(self.__x, self.__y, self.__curve, self.__zero)
     
-    if self == right:
-      if self.y == 0:
-        return CECPoint(0, 0, self.curve, True)
-      m = (3 * self.__x**2 + self.__curve.a)/(2*self.__y)
+    if self.__x != right.x:
+      m = (self.__y - right.y)/(self.__x - right.x)
+    elif self.__y != right.y or right.y == 0:
+      return CECPoint(0, 0, self.__curve, True)
     else:
-      if self.x == right.x:
-        return CECPoint(0, 0, self.__curve, True)
-      m = (right.y - self.__y)/(right.x - self.__x)
+      m = (3 * right.x**2 + self.__curve.a)/(2 * right.y)
     
     x = m**2 - self.__x - right.x
-    y = m*(self.__x - x) - self.__y
+    y = m * (right.x - x) - right.y
     
     return CECPoint(x, y, self.__curve)
+    
+  def __sub__(self, right):
+    return self + -right
     
   def __mul__(self, right):   
     """
@@ -186,9 +190,9 @@ class CEllipticCurvePrime(object):
       self.__b = b
     self.__mod  = mod
     
-    # REVIEW condition for cuves over a prime field
-    #if (4 * modular.power(a, 3, mod) + 27 * modular.power(b, 2, mod)) % mod == 0:
-    #  raise ValueError("4a^3 + 27b^2 == 0")
+    # checks if the curve is valid
+    if 4 * self.__a ** 3 + 27 * b ** 2 == 0:
+      raise ValueError("4a^3 + 27b^2 == 0 (mod %X)" % (self.__mod,))
     
   def pointIsInCurve(self, point):
     """
@@ -202,13 +206,16 @@ class CEllipticCurvePrime(object):
     if not isinstance(point, CECPoint):
       raise TypeError("point should be of type CECPoint, not %s" % (point.__class__,))
     
-    return point.y**2 == (point.x**3 + self.__a * point.x + self.__b)
-  
+    return point.zero or point.y**2 == (point.x**3 + self.__a * point.x + self.__b)
+
+# SPECIAL METHODS ##############################################################################################    
   def __repr__(self):
     """
     String representation function.
+    
+    @rtype: C{str }
     """
-    return "y**2 == x**3 + %d * x + %d (mod %d)" % (self.__a, self.__b, self.__mod)
+    return "y**2 == x**3 + %X * x + %X (mod %X)" % (self.__a, self.__b, self.__mod)
     
   def __eq__(self, right):
     if not isinstance(right, CEllipticCurvePrime):
@@ -218,17 +225,32 @@ class CEllipticCurvePrime(object):
     
   # generates a point
   def __call__(self, x):
+    """
+    Returns a tuple with all points at the given M{x}. It might be empty if there is no defined point at point.
+    
+    @param x: The x-coordinate of the point.
+    @type  x: C{int}, C{long} or L{CModInt}
+    @rtype: tuple
+    """
     if not isinstance(x, modular.CModInt):
       x = modular.CModInt(x, self.__mod)
     
-    # this way causes less crap in memory
+    # this is the more memory efficient way (as all operations are in-place)
     y   = x**2
     y  += self.__a
     y  *= x
-    y  += self.__b
-    y **= 2
+    y  += self.__b   
+    y **= 0.5
+
+    # no square root, so no point
+    if y == None:
+      return ()
     
-    return CECPoint(x, y, self)
+    # only one point there...
+    if y == 0:
+      return (CECPoint(x, y, self), )
+    
+    return (CECPoint(x, y, self), CECPoint(x, -y, self))
 
 # ACESSOR METHODS ##############################################################################################
   def a(self):
