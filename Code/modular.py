@@ -3,6 +3,13 @@
   
 import math
 
+# checks if we are running from a s60 phone and modifies include path
+import os
+import sys
+
+if os.name == 'e32':
+  sys.path.append('e:\ecc4pys60')
+
 # $Id$
 __version__   = "$Revision$"
 __author__    = "Alexandre Coster"

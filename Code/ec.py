@@ -2,8 +2,16 @@
 # -*- coding: utf8 -*-
 
 import copy
-import modular
 import math
+
+# checks if we are running from a s60 phone and modifies include path
+import os
+import sys
+
+if os.name == 'e32':
+  sys.path.append('e:\ecc4pys60')
+
+import modular
 
 # $Id$
 __version__   = "$Revision$"
@@ -57,7 +65,7 @@ class CECPoint(object):
     """
     if self.__zero:
       return "(0, 0, True)"
-    return "(%d, %d, False)" % (self.__x, self.__y)
+    return "(%x, %x, False)" % (long(self.__x), long(self.__y))
     
 # UNARY OPERATORS ##############################################################################################
   def __neg__(self):
@@ -127,9 +135,14 @@ class CECPoint(object):
     if right == 0:
       return CECPoint(0, 0, self.__curve, True)
     
+    # threat "pathologic" cases
     if right == 1:
       return copy.copy(self)
+      
+    if right == 2:
+      return copy.copy(self)
     
+    # reduces to up to (log_2(n) + 2) sums
     if right%2 == 1:
       return (self + self) * (right/2) + self
     return (self + self) * (right/2)
@@ -192,7 +205,7 @@ class CEllipticCurvePrime(object):
     
     # checks if the curve is valid
     if 4 * self.__a ** 3 + 27 * b ** 2 == 0:
-      raise ValueError("4a^3 + 27b^2 == 0 (mod %X)" % (self.__mod,))
+      raise ValueError("4a^3 + 27b^2 == 0 (mod %lx)" % (self.__mod,))
     
   def pointIsInCurve(self, point):
     """
@@ -215,7 +228,7 @@ class CEllipticCurvePrime(object):
     
     @rtype: C{str }
     """
-    return "y**2 == x**3 + %X * x + %X (mod %X)" % (self.__a, self.__b, self.__mod)
+    return "y**2 == x**3 + %lx * x + %lx (mod %x)" % (long(self.__a), long(self.__b), long(self.__mod))
     
   def __eq__(self, right):
     if not isinstance(right, CEllipticCurvePrime):
@@ -264,3 +277,9 @@ class CEllipticCurvePrime(object):
   def mod(self):
     return self.__mod
   mod = property(mod)
+  
+  
+teste = CEllipticCurvePrime(-3, 0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1, 6277101735386680763835789423207666416083908700390324961279)
+pontos = teste(0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012)
+print pontos
+print pontos[0] * 30
