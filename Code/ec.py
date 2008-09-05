@@ -3,10 +3,12 @@
 
 import copy
 import math
+import random
 
 # checks if we are running from a s60 phone and modifies include path
 import os
 import sys
+import time
 
 if os.name == 'e32':
   sys.path.append('e:\ecc4pys60')
@@ -18,6 +20,27 @@ __version__   = "$Revision$"
 __author__    = "Alexandre Coster"
 __contact__   = "acoster at inf dot ufrgs dot br"
 __copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
+
+class CECDH(object):
+  """
+  
+  """
+
+  def __init__(self, oCurve, nBaseX, nBaseY, nMultiplicator):
+    """
+    """
+    
+    self.__oCurve         = oCurve
+    self.__oBasePoint     = CECPoint(nBaseX, nBaseY, oCurve)
+    self.__nMultiplicator = nMultiplicator
+    self.__oPubPoint      = self.__oBasePoint * nMultiplicator
+    
+  def GenKey(self, oPoint):
+    return oPoint * self.__nMultiplicator
+    
+  def MyPoint(self):
+    return copy.copy(self.__oPubPoint)
+  MyPoint = property(MyPoint)
 
 class CECPoint(object):
   """
@@ -53,8 +76,8 @@ class CECPoint(object):
     self.__curve = curve
     self.__zero  = zero
     
-    if not curve.pointIsInCurve(self):
-      print "Point is not valid!"
+    #if not curve.pointIsInCurve(self):
+    #  print "Point is not valid!"
   
  # SPECIAL METHODS #############################################################################################
   def __repr__(self):
@@ -76,7 +99,16 @@ class CECPoint(object):
     """
     return CECPoint(self.__x, -self.__y, self.__curve, self.__zero)
 	
-# BINARY OPERATORS #############################################################################################    
+# BINARY OPERATORS #############################################################################################
+  def __eq__(self, right):
+    if not isinstance(right, CECPoint):
+      return False
+      
+    if self.__curve != right.curve:
+      return False
+      
+    return (self.__x == right.x and self.__y == right.y) or self.__zero == right.zero
+    
   def __add__(self, right):
     """
     Returns the resulting point of C{self} + C{right}.
@@ -138,14 +170,27 @@ class CECPoint(object):
     # threat "pathologic" cases
     if right == 1:
       return copy.copy(self)
-      
-    if right == 2:
-      return copy.copy(self)
     
-    # reduces to up to (log_2(n) + 2) sums
-    if right%2 == 1:
-      return (self + self) * (right/2) + self
-    return (self + self) * (right/2)
+    result = None
+    p = copy.copy(self)
+    n = 1L
+    strRes = ''
+    
+    
+    while n <= right:
+      if n & right != 0:
+        if result == None:
+          result = copy.copy(p)
+        else:
+          result = result + p
+      p = p + p
+      n = n<<1
+    
+    return result
+  
+# INVERSE OPERATORS ############################################################################################
+  def __rmul__(self, left):
+    return self * left
  
 # ACCESSOR METHODS #############################################################################################
   def x(self):
@@ -278,8 +323,24 @@ class CEllipticCurvePrime(object):
     return self.__mod
   mod = property(mod)
   
+def Test():
+  nP         = 26959946667150639794667015087019630673557916260026308143510066298881
+  nA         = modular.CModInt(-3, nP)
+  nB         = modular.CModInt(0xb4050a850c04b3abf54132565044b0b7d7bfd8ba270b39432355ffb4, nP)
+  oCurve     = CEllipticCurvePrime(nA, nB, nP)
   
-teste = CEllipticCurvePrime(-3, 0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1, 6277101735386680763835789423207666416083908700390324961279)
-pontos = teste(0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012)
-print pontos
-print pontos[0] * 30
+  nGX        = 0xb70e0cbd6bb4bf7f321390b94a03c1d356c21122343280d6115c1d21
+  nGY        = 0xbd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34
+  
+  nAX = 0xc5d85abbd81d212902c16c5c6857be72f36370e1749b78e682a26e21
+  nAY = 0x7ffc0818343a5c5bdc869254dfefe132c0e414dbccd28278eee40c1d
+  
+  oBasePoint  = CECPoint(nGX, nGY, oCurve)
+  oAlicePoint = CECPoint(nAX, nAY, oCurve)
+  
+  cl = time.clock()
+  #oDHAlice = CECDH(oCurve, nGX, nGY, long(random.random() * nP-1))
+  oDHBob  = CECDH(oCurve, nGX, nGY, long(random.random() * nP-1))
+  print oDHBob.GenKey(oAlicePoint)
+  print time.clock() - cl
+  
