@@ -55,7 +55,9 @@ def Verify(nR, nS, nE, oG, oQ):
   nW  = mod_inverse(nS, nOrder)
   nU1 = (nE * nW) % nOrder
   nU2 = (nR * nW) % nOrder
-  oP  = nU1 * oG + nU2 * oQ
+  
+  #oP  = nU1 * oG + nU2 * oQ 
+  oP = oG.MultiplyPoints(nU1, oQ, nU2)
   
   nV  = oP.nX % nOrder
   return nV == nR

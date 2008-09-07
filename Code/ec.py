@@ -28,7 +28,7 @@ def LeftmostBit(nX):
   nResult = 1L
   while nResult <= nX:
     nResult = 2 * nResult
-  return nResult / 2
+  return nResult / 2 
 
 class CEllipticCurvePrime(object): 
   """
@@ -74,9 +74,16 @@ class CECPoint(object):
 
 # BINARY OPERATORS #############################################################################################      
   def __eq__(self, oRight):
-    return self.__oCurve == oRight.__oCurve and \
-           self.__nX     == oRight.__nX     and \
-           self.__nY     == oRight.__nY
+    bnSameCurve = False
+    # For comparsions using g_oInfinity
+    if self.__oCurve != None and oRight.__oCurve != None:
+      bnSameCurve = self.__oCurve == oRight.__oCurve
+    else:
+      bnSameCurve = True
+  
+    return bnSameCurve                and \
+           self.__nX   == oRight.__nX and \
+           self.__nY   == oRight.__nY
   
   def __add__(self, oRight):
     if oRight == g_oInfinity:
@@ -131,14 +138,37 @@ class CECPoint(object):
 
 # OTHER METHODS ################################################################################################    
   def Double(self):
+    if self == g_oInfinity:
+      return g_oInfinity
+
     nModulus = self.__oCurve.nModulus
     nA       = self.__oCurve.nA
-
+      
     nLambda = ((3 * self.__nX**2 + nA) * mod_inverse(2 * self.__nY, nModulus)) % nModulus
     nX      = (nLambda**2 - 2 * self.__nX)                                     % nModulus
     nY      = (nLambda * (self.__nX - nX) - self.__nY)                         % nModulus
     
     return CECPoint(self.__oCurve, nX, nY)
+  
+  # Returns self * nK + oOtherPoint * nL
+  def MultiplyPoints(self, nK, oQ, nL):
+    nI  = max(LeftmostBit(nK), LeftmostBit(nL))
+    oPQ = self + oQ
+    oR  = g_oInfinity
+    
+    while nI > 0:
+      oR = oR.Double()
+      
+      if nI & nK == nI:
+        if nI & nL == nI:
+          oR = oR + oPQ
+        else:
+          oR = oR + self
+      elif nI & nL == nI:
+        oR = oR + oQ
+      nI /= 2
+    
+    return oR
     
 # PROPERTIES ###################################################################################################
   def nX(self):
