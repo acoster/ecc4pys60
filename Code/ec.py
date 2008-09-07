@@ -61,7 +61,7 @@ class CECPoint(object):
     self.__nX     = nX
     self.__nY     = nY
     self.__nOrder = nOrder
-       
+    
     if oCurve and nX and nY:
       assert oCurve.IsOnCurve(self)
     
@@ -148,6 +148,14 @@ class CECPoint(object):
   def nY(self):
     return self.__nY
   nY = property(nY)
+  
+  def oCurve(self):
+    return self.__oCurve
+  oCurve = property(oCurve)
+  
+  def nOrder(self):
+    return self.__nOrder
+  nOrder = property(nOrder)
 
 # Infinity point
 g_oInfinity = CECPoint()
