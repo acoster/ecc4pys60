@@ -14,7 +14,7 @@ if os.name == 'e32':
   sys.path.append('e:\ecc4pys60')
 
 import ec
-from modular import mod_inverse
+from modular import mod_inverse, random_bytes
   
 # $Id$
 __version__   = "$Revision$"
@@ -22,9 +22,30 @@ __author__    = "Alexandre Coster"
 __contact__   = "acoster at inf dot ufrgs dot br"
 __copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
 
+def GenerateKeyPair(oG):
+  if oG.nOrder == None:
+    raise RuntimeError("Base point must have order.")
+    
+  # number of words (16 bit integers) that will be used to compose the random value
+  nBits = math.log(ec.LeftmostBit(oG.nOrder))/math.log(2)
+  if nBits % 16 != 0:
+    nBits += nBits % 16
+    
+  nBits *= 4
+    
+  nPrivKey = 1
+  while math.log(nPrivKey) == 0:
+    nPrivKey = random_bytes(nBits) 
+    nPrivKey %= oG.nOrder
+    
+  print nPrivKey
+  
+  return (nPrivKey, oG * nPrivKey)
+  
+
 def Sign(nE, oG, nD, nK):
   if oG.nOrder == None:
-    raise RuntimeError, "Base point must have order."
+    raise RuntimeError("Base point must have order.")
     
   nOrder = oG.nOrder
   nK     = nK % nOrder
@@ -32,19 +53,19 @@ def Sign(nE, oG, nD, nK):
   nR     = oP.nX
   
   if nR == 0:
-    raise RuntimeError, "Invalid random number provided (r == 0)"
+    raise RuntimeError("Invalid random number provided (r == 0)")
   
   nS = (mod_inverse(nK, nOrder) * (nE + (nD * nR) % nOrder)) % nOrder
   
   if nS == 0:
-    raise RuntimeError, "Invalid random number provided (s == 0)"
+    raise RuntimeError("Invalid random number provided (s == 0)")
   
   return (nR, nS)
 
 
 def Verify(nR, nS, nE, oG, oQ):
   if oG.nOrder == None:
-    raise RuntimeError, "Base point must have order."
+    raise RuntimeError("Base point must have order.")
     
   nOrder = oG.nOrder
   if nR < 1 or nR > nOrder - 1:

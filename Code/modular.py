@@ -2,6 +2,7 @@
 # -*- coding: utf8 -*-
   
 import math
+import random
 
 # checks if we are running from a s60 phone and modifies include path
 import os
@@ -15,6 +16,17 @@ __version__   = "$Revision$"
 __author__    = "Alexandre Coster"
 __contact__   = "acoster at inf dot ufrgs dot br"
 __copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
+
+def random_bytes(nBits):
+  if sys.version[:2] > (2, 2):
+    return random.randint(nLength, 2**nBits - 1)
+  
+  # The random number is generated in chunks of 16 bits
+  nBits /= 16
+  nResult = 0
+  for nI in xrange(nBits):
+    nResult |= random.randint(0, 2**16 - 1) << (16 * nI)
+  return nResult
 
 def mod_inverse(nValue, nModulus):
   """Inverse of a mod m."""
