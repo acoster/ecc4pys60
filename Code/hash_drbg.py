@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
-__version__ = "$Revision: 16 $"
-# $Id: ec.py 16 2008-09-07 14:28:53Z acoster $
+__version__ = "$Revision$"
+# $Id$
 
 from math import ceil
 import random
@@ -53,27 +53,32 @@ else:
 def _hash_df(input, number_of_bits):
     temp = ""
     length = int(ceil(float(number_of_bits) / 160))
-
     counter = 1
+
     for i in xrange(length):
-        temp = temp + "%s" % (sha256("%x%x%s" %
-              (counter, number_of_bits, temp)).hexdigest(),)
+        temp = temp + sha256("%.2x%.8x%s" % (counter, number_of_bits, input)).hexdigest()
         counter = (counter + 1) % 256
 
     return long(temp[:number_of_bits / 4], 16)
 
 class HashDRBG(object):
+    #initial nonce
+    __initial_nonce = int(time.time())
+
     def __init__(self, seed = get_entropy(55)):
         entropy = get_entropy(125)
-        nonce = int(time.time())
+        nonce = HashDRBG.__initial_nonce
+        HashDRBG.__initial_nonce += 1
+
         seed_material = "%x%x" % (entropy, nonce)
+
         self.__v = _hash_df(seed_material, 440)
         self.__c = _hash_df("00%x" % (self.__v,), 440)
         self.__reseed_counter = 1
 
     def __call__(self, num_bytes):
         if num_bytes > 625:
-            raise ValueError("At most 625 can be requested (%d requested)." %
+            raise ValueError("At most 625 bytes can be requested (%d requested)." %
                                 (num_bytes))
 
         m = int(ceil(num_bytes / 20.0))
@@ -85,6 +90,7 @@ class HashDRBG(object):
             w = sha256("%x" % (data,)).hexdigest()
             W = W + w
             data = (data + 1) % modulus
+
         result = long(W[:num_bytes*2], 16)
         H = long(sha256("03%x" % (self.__v,)).hexdigest(), 16)
         self.__v = (self.__v + H + self.__reseed_counter) % modulus
