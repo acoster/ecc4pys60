@@ -48,7 +48,13 @@ if os.name == 'e32':
         return long("".join(samples), 16)
 else:
     def get_entropy(num_bytes = 125):
-        return random.randint(0, 2 ** (3 * num_bytes))
+        entropy = os.urandom(num_bytes)
+        result = 0
+
+        for i in xrange(num_bytes):
+            result += ord(entropy[i]) * 256**(num_bytes - (1 + i))
+
+        return result
 
 def _hash_df(input, number_of_bits):
     temp = ""
@@ -97,3 +103,6 @@ class HashDRBG(object):
         self.__reseed_counter += 1
 
         return result
+
+a = HashDRBG()
+print "%x" % (a(128),)

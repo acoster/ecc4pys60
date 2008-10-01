@@ -1,14 +1,12 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
+__version__ = "$Revision$"
 # $Id$
-__version__     = "$Revision$"
 
 import os
 import sys
-import copy
-import math
-import random
+from math import log, ceil
 
 # checks if we are running from a s60 phone and modifies include path
 if os.name == 'e32':
@@ -23,27 +21,8 @@ from modular import mod_inverse
 
 __all__ = ['generate_key_pair', 'sign']
 
-def generate_key_pair(G):
-    if G.order == None:
-        raise RuntimeError("Base point must have order.")
-
-    key_size = math.log(ec.leftmost_bit(G.order)) / math.log(2)
-    key_size = math.ceil(key_size) / 2
-    private_key = 1
-
-    while private_key <= 1:
-        private_key = hash_drbg.get_entropy(key_size)
-        private_key %= G.order
-
-    return (private_key, G * private_key)
-
+### INTERNAL FUNCTIONS ########################################################
 def _sign(e, G, d, k):
-    """
-        e -> message hash
-        G -> base point
-        d -> private key
-        k -> random integer
-    """
     if G.order == None:
         raise RuntimeError("Base point must have order.")
 
@@ -61,11 +40,6 @@ def _sign(e, G, d, k):
         raise RuntimeError("Invalid random number provided (s == 0)")
 
     return (r, s)
-
-def sign(message, G, d):
-    r = hash_drbg.get_entropy(1024)
-    return _sign(long(sha256(message).hexdigest, 16), G, d, k)
-
 
 def _verify(r, s, e, G, Q):
     if G.order == None:
@@ -85,3 +59,25 @@ def _verify(r, s, e, G, Q):
 
     nV    = oP.nX % order
     return nV == r
+
+### PUBLIC FUNCTIONS ##########################################################
+def generate_key_pair(G):
+    if G.order == None:
+        raise RuntimeError("Base point must have order.")
+
+    random_generator = hash_drbg.HashDRBG()
+
+    key_size = log(ec.leftmost_bit(G.order)) / log(2)
+    key_size = ceil(key_size) / 2
+    private_key = 1
+
+    while private_key <= 1:
+        private_key = random_generator(key_size) #generates a random number
+                                                 #with twice the required bits
+        private_key %= G.order
+
+    return (private_key, G * private_key)
+
+def sign(message, G, d):
+    r = hash_drbg.get_entropy(1024)
+    return _sign(long(sha256(message).hexdigest, 16), G, d, k)

@@ -4,7 +4,6 @@
 __version__ = "$Revision$"
 # $Id$
 
-import math
 import sys
 import os
 
@@ -53,9 +52,9 @@ class EllipticCurvePrime(object):
 class ECPoint(object):
     def __init__(self, curve = None, x = None, y = None, order = None):
         self.__curve = curve
-        self.__x         = x
-        self.__y         = y
         self.__order = order
+        self.__x = x
+        self.__y = y
 
         if curve and x and y:
             assert curve.is_on_curve(self)
@@ -112,10 +111,12 @@ class ECPoint(object):
 
         assert right > 0
 
-        right3    = 3 * right
+        right3 = 3 * right
+        i = leftmost_bit(right3) / 2
         minus_self = -self
-        i             = leftmost_bit(right3) / 2
-        result    = self
+
+        result = self # the initial result is not changed, hence it can be
+                      # a pointer to self instead of a copy
 
         while i > 1:
             result = result.double()
@@ -131,7 +132,6 @@ class ECPoint(object):
     def __rmul__(self, left):
         return self * left
 
-
 # OTHER METHODS ###############################################################
     def double(self):
         if self == infinity:
@@ -140,7 +140,8 @@ class ECPoint(object):
         modulus = self.__curve.modulus
         a = self.__curve.a
 
-        lambda_ = ((3 * self.__x**2 + a) * mod_inverse(2 * self.__y, modulus)) % modulus
+        lambda_ = ((3 * self.__x**2 + a) *
+                  mod_inverse(2 * self.__y, modulus)) % modulus
         x = (lambda_**2 - 2 * self.__x) % modulus
         y = (lambda_ * (self.__x - x) - self.__y) % modulus
 
@@ -148,9 +149,9 @@ class ECPoint(object):
 
     # Returns self * k + oOtherPoint * l
     def MultiplyPoints(self, k, Q, l):
-        i    = max(leftmost_bit(k), leftmost_bit(l))
+        R = infinity
         PQ = self + Q
-        R    = infinity
+        i = max(leftmost_bit(k), leftmost_bit(l))
 
         while i > 0:
             R = R.double()
