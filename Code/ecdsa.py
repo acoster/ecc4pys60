@@ -1,84 +1,87 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
+# $Id$
+__version__     = "$Revision$"
+
+import os
+import sys
 import copy
 import math
 import random
-import md5
 
 # checks if we are running from a s60 phone and modifies include path
-import os
-import sys
-
 if os.name == 'e32':
-  sys.path.append('e:\ecc4pys60')
+    sys.path.append('e:\ecc4pys60')
+    from pys60crypto import sha256
+else:
+    from hashlib import sha256
 
 import ec
-from modular import mod_inverse, random_bytes
-  
-# $Id$
-__version__   = "$Revision$"
-__author__    = "Alexandre Coster"
-__contact__   = "acoster at inf dot ufrgs dot br"
-__copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
+import hash_drbg
+from modular import mod_inverse
 
-def GenerateKeyPair(oG):
-  if oG.nOrder == None:
-    raise RuntimeError("Base point must have order.")
-    
-  # number of words (16 bit integers) that will be used to compose the random value
-  nBits = math.log(ec.LeftmostBit(oG.nOrder))/math.log(2)
-  if nBits % 16 != 0:
-    nBits += nBits % 16
-    
-  nBits *= 4
-    
-  nPrivKey = 1
-  while math.log(nPrivKey) == 0:
-    nPrivKey = random_bytes(nBits) 
-    nPrivKey %= oG.nOrder
-    
-  print nPrivKey
-  
-  return (nPrivKey, oG * nPrivKey)
-  
+__all__ = ['generate_key_pair', 'sign']
 
-def Sign(nE, oG, nD, nK):
-  if oG.nOrder == None:
-    raise RuntimeError("Base point must have order.")
-    
-  nOrder = oG.nOrder
-  nK     = nK % nOrder
-  oP     = nK * oG
-  nR     = oP.nX
-  
-  if nR == 0:
-    raise RuntimeError("Invalid random number provided (r == 0)")
-  
-  nS = (mod_inverse(nK, nOrder) * (nE + (nD * nR) % nOrder)) % nOrder
-  
-  if nS == 0:
-    raise RuntimeError("Invalid random number provided (s == 0)")
-  
-  return (nR, nS)
+def generate_key_pair(G):
+    if G.order == None:
+        raise RuntimeError("Base point must have order.")
+
+    key_size = math.log(ec.leftmost_bit(G.order)) / math.log(2)
+    key_size = math.ceil(key_size) / 2
+    private_key = 1
+
+    while private_key <= 1:
+        private_key = hash_drbg.get_entropy(key_size)
+        private_key %= G.order
+
+    return (private_key, G * private_key)
+
+def _sign(e, G, d, k):
+    """
+        e -> message hash
+        G -> base point
+        d -> private key
+        k -> random integer
+    """
+    if G.order == None:
+        raise RuntimeError("Base point must have order.")
+
+    order = G.order
+    k = k % order
+    p = k * G
+    r = p.nX
+
+    if r == 0:
+        raise RuntimeError("Invalid random number provided (r == 0)")
+
+    s = (mod_inverse(k, order) * (e + (d * r) % order)) % order
+
+    if s == 0:
+        raise RuntimeError("Invalid random number provided (s == 0)")
+
+    return (r, s)
+
+def sign(message, G, d):
+    r = hash_drbg.get_entropy(1024)
+    return _sign(long(sha256(message).hexdigest, 16), G, d, k)
 
 
-def Verify(nR, nS, nE, oG, oQ):
-  if oG.nOrder == None:
-    raise RuntimeError("Base point must have order.")
-    
-  nOrder = oG.nOrder
-  if nR < 1 or nR > nOrder - 1:
-    return False
-  if nS < 1 or nS > nOrder - 1:
-    return False
-    
-  nW  = mod_inverse(nS, nOrder)
-  nU1 = (nE * nW) % nOrder
-  nU2 = (nR * nW) % nOrder
-  
-  #oP  = nU1 * oG + nU2 * oQ 
-  oP = oG.MultiplyPoints(nU1, oQ, nU2)
-  
-  nV  = oP.nX % nOrder
-  return nV == nR
+def _verify(r, s, e, G, Q):
+    if G.order == None:
+        raise RuntimeError("Base point must have order.")
+
+    order = G.order
+    if r < 1 or r > order - 1:
+        return False
+    if s < 1 or s > order - 1:
+        return False
+
+    nW    = mod_inverse(s, order)
+    nU1 = (e * nW) % order
+    nU2 = (r * nW) % order
+
+    oP = G.MultiplyPoints(nU1, Q, nU2)
+
+    nV    = oP.nX % order
+    return nV == r

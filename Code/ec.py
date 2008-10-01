@@ -1,191 +1,187 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
-import copy
+__version__ = "$Revision$"
+# $Id$
+
 import math
-import random
-import md5
+import sys
+import os
 
 # checks if we are running from a s60 phone and modifies include path
-import os
-import sys
-import time
-
 if os.name == 'e32':
-  sys.path.append('e:\ecc4pys60')
+    sys.path.append('e:\ecc4pys60')
 
 from modular import mod_inverse
-  
-# $Id$
-__version__   = "$Revision$"
-__author__    = "Alexandre Coster"
-__contact__   = "acoster at inf dot ufrgs dot br"
-__copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
 
-def LeftmostBit(nX):
-  assert nX > 0
-  
-  nResult = 1L
-  while nResult <= nX:
-    nResult = 2 * nResult
-  return nResult / 2 
+__all__ = ['leftmost_bit', 'EllipticCurvePrime', 'ECPoint']
 
-class CEllipticCurvePrime(object): 
-  """
-  Abstraction of an Elliptic Curve over a prime field. It is defined as M{y**2 = x**3  + ax + b (mod p)}.
-  """
-  
-  def __init__(self, nA, nB, nModulus):
-    self.__nA       = nA
-    self.__nB       = nB
-    self.__nModulus = nModulus
-  
-  def IsOnCurve(self, oPoint):
-    return (oPoint.nY**2 - (oPoint.nX**3 + self.__nA * oPoint.nX + self.__nB)) % self.__nModulus == 0
-    
-  def nA(self):
-    return self.__nA
-  nA = property(nA)
-    
-  def nB(self):
-    return self.__nB
-  nB = property(nB)
-  
-  def nModulus(self):
-    return self.__nModulus
-  nModulus = property(nModulus)
-  
-class CECPoint(object):
-  def __init__(self, oCurve = None, nX = None, nY = None, nOrder = None):
-    self.__oCurve = oCurve
-    self.__nX     = nX
-    self.__nY     = nY
-    self.__nOrder = nOrder
-    
-    if oCurve and nX and nY:
-      assert oCurve.IsOnCurve(self)
-    
-    if nOrder:
-      assert self * nOrder == g_oInfinity
-      
-# UNARY OPERATORS ##############################################################################################
-  def __neg__(self):
-    return CECPoint(self.__oCurve, self.__nX, -self.__nY, self.__nOrder)
+def leftmost_bit(x):
+    assert x > 0
 
-# BINARY OPERATORS #############################################################################################      
-  def __eq__(self, oRight):
-    bnSameCurve = False
-    # For comparsions using g_oInfinity
-    if self.__oCurve != None and oRight.__oCurve != None:
-      bnSameCurve = self.__oCurve == oRight.__oCurve
-    else:
-      bnSameCurve = True
-  
-    return bnSameCurve                and \
-           self.__nX   == oRight.__nX and \
-           self.__nY   == oRight.__nY
-  
-  def __add__(self, oRight):
-    if oRight == g_oInfinity:
-      return self
-    
-    if self == g_oInfinity:
-      return oRight
-    
-    assert self.__oCurve == oRight.__oCurve
-    
-    if self.__nX == oRight.__nX:
-      if (self.__nY + oRight.__nY) % self.__oCurve.nModulus == 0:
-        return g_oInfinity
-      return self.Double()
-    
-    nModulus = self.__oCurve.nModulus
-    nLambda  = ((oRight.__nY - self.__nY) * mod_inverse(oRight.__nX - self.__nX, nModulus)) % nModulus
-    
-    nX3 = (nLambda**2 - self.__nX - oRight.__nX)    % nModulus
-    nY3 = (nLambda * (self.__nX - nX3) - self.__nY) % nModulus
-    
-    return CECPoint(self.__oCurve, nX3, nY3)
-  
-  def __mul__(self, nRight): 
-    if self.__nOrder:
-      nRight = nRight % self.__nOrder
-    
-    if nRight == 0 or self == g_oInfinity:
-      return g_oInfinity
-    
-    assert nRight > 0
+    result = 1L
+    while result <= x:
+        result = 2 * result
+    return result / 2
 
-    nRight3  = 3 * nRight
-    oNegSelf = -self
-    nI       = LeftmostBit(nRight3) / 2
-    oResult  = self
-    
-    while nI > 1:
-      oResult = oResult.Double()
-      if (nRight3 & nI) != 0 and (nRight & nI) == 0:
-        oResult = oResult + self
-      if (nRight3 & nI) == 0 and (nRight & nI) != 0:
-        oResult = oResult + oNegSelf
-      nI = nI / 2
-    
-    return oResult
-  
-# REVERSE BINARY OPERATORS #####################################################################################
-  def __rmul__(self, nLeft):
-    return self * nLeft
+class EllipticCurvePrime(object):
+    """
+    """
+
+    def __init__(self, a, b, modulus):
+        self.__a = a
+        self.__b = b
+        self.__modulus = modulus
+
+    def is_on_curve(self, point):
+        return (point.y**2 - (point.x**3 + self.__a * point.x + self.__b)) % \
+                self.__modulus == 0
+
+    def a(self):
+        return self.__a
+    a = property(a)
+
+    def b(self):
+        return self.__b
+    b = property(b)
+
+    def modulus(self):
+        return self.__modulus
+    modulus = property(modulus)
 
 
-# OTHER METHODS ################################################################################################    
-  def Double(self):
-    if self == g_oInfinity:
-      return g_oInfinity
+class ECPoint(object):
+    def __init__(self, curve = None, x = None, y = None, order = None):
+        self.__curve = curve
+        self.__x         = x
+        self.__y         = y
+        self.__order = order
 
-    nModulus = self.__oCurve.nModulus
-    nA       = self.__oCurve.nA
-      
-    nLambda = ((3 * self.__nX**2 + nA) * mod_inverse(2 * self.__nY, nModulus)) % nModulus
-    nX      = (nLambda**2 - 2 * self.__nX)                                     % nModulus
-    nY      = (nLambda * (self.__nX - nX) - self.__nY)                         % nModulus
-    
-    return CECPoint(self.__oCurve, nX, nY)
-  
-  # Returns self * nK + oOtherPoint * nL
-  def MultiplyPoints(self, nK, oQ, nL):
-    nI  = max(LeftmostBit(nK), LeftmostBit(nL))
-    oPQ = self + oQ
-    oR  = g_oInfinity
-    
-    while nI > 0:
-      oR = oR.Double()
-      
-      if nI & nK == nI:
-        if nI & nL == nI:
-          oR = oR + oPQ
+        if curve and x and y:
+            assert curve.is_on_curve(self)
+
+        if order:
+            assert self * order == infinity
+
+# UNARY OPERATORS #############################################################
+    def __neg__(self):
+        return ECPoint(self.__curve, self.__x, -self.__y, self.__order)
+
+# BINARY OPERATORS ############################################################
+    def __eq__(self, right):
+        is_same_curve = False
+
+        # For comparsions using infinity
+        if self.__curve != None and right.__curve != None:
+            is_same_curve = self.__curve == right.__curve
         else:
-          oR = oR + self
-      elif nI & nL == nI:
-        oR = oR + oQ
-      nI /= 2
-    
-    return oR
-    
-# PROPERTIES ###################################################################################################
-  def nX(self):
-    return self.__nX
-  nX = property(nX)
-  
-  def nY(self):
-    return self.__nY
-  nY = property(nY)
-  
-  def oCurve(self):
-    return self.__oCurve
-  oCurve = property(oCurve)
-  
-  def nOrder(self):
-    return self.__nOrder
-  nOrder = property(nOrder)
+            is_same_curve = True
+
+        return is_same_curve and self.__x == right.__x and \
+                                 self.__y == right.__y
+
+    def __add__(self, right):
+        if right == infinity:
+            return self
+
+        if self == infinity:
+            return right
+
+        assert self.__curve == right.__curve
+
+        if self.__x == right.__x:
+            if (self.__y + right.__y) % self.__curve.modulus == 0:
+                return infinity
+            return self.double()
+
+        modulus = self.__curve.modulus
+        lambda_ = ((right.__y - self.__y) * mod_inverse(right.__x -
+                    self.__x, modulus)) % modulus
+
+        x3 = (lambda_**2 - self.__x - right.__x) % modulus
+        y3 = (lambda_ * (self.__x - x3) - self.__y) % modulus
+
+        return ECPoint(self.__curve, x3, y3)
+
+    def __mul__(self, right):
+        if self.__order:
+            right = right % self.__order
+
+        if right == 0 or self == infinity:
+            return infinity
+
+        assert right > 0
+
+        right3    = 3 * right
+        minus_self = -self
+        i             = leftmost_bit(right3) / 2
+        result    = self
+
+        while i > 1:
+            result = result.double()
+            if (right3 & i) != 0 and (right & i) == 0:
+                result = result + self
+            if (right3 & i) == 0 and (right & i) != 0:
+                result = result + minus_self
+            i = i / 2
+
+        return result
+
+# REVERSE BINARY OPERATORS ####################################################
+    def __rmul__(self, left):
+        return self * left
+
+
+# OTHER METHODS ###############################################################
+    def double(self):
+        if self == infinity:
+            return infinity
+
+        modulus = self.__curve.modulus
+        a = self.__curve.a
+
+        lambda_ = ((3 * self.__x**2 + a) * mod_inverse(2 * self.__y, modulus)) % modulus
+        x = (lambda_**2 - 2 * self.__x) % modulus
+        y = (lambda_ * (self.__x - x) - self.__y) % modulus
+
+        return ECPoint(self.__curve, x, y)
+
+    # Returns self * k + oOtherPoint * l
+    def MultiplyPoints(self, k, Q, l):
+        i    = max(leftmost_bit(k), leftmost_bit(l))
+        PQ = self + Q
+        R    = infinity
+
+        while i > 0:
+            R = R.double()
+
+            if i & k == i:
+                if i & l == i:
+                    R = R + PQ
+                else:
+                    R = R + self
+            elif i & l == i:
+                R = R + Q
+            i /= 2
+
+        return R
+
+# PROPERTIES ##################################################################
+    def x(self):
+        return self.__x
+    x = property(x)
+
+    def y(self):
+        return self.__y
+    y = property(y)
+
+    def curve(self):
+        return self.__curve
+    curve = property(curve)
+
+    def order(self):
+        return self.__order
+    order = property(order)
 
 # Infinity point
-g_oInfinity = CECPoint()
+infinity = ECPoint()
