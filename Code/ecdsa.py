@@ -29,7 +29,7 @@ def _sign(e, G, d, k):
     order = G.order
     k = k % order
     p = k * G
-    r = p.nX
+    r = p.x
 
     if r == 0:
         raise RuntimeError("Invalid random number provided (r == 0)")
@@ -51,24 +51,24 @@ def _verify(r, s, e, G, Q):
     if s < 1 or s > order - 1:
         return False
 
-    nW    = mod_inverse(s, order)
-    nU1 = (e * nW) % order
-    nU2 = (r * nW) % order
+    w = mod_inverse(s, order)
+    u1 = (e * w) % order
+    u2 = (r * w) % order
 
-    oP = G.MultiplyPoints(nU1, Q, nU2)
+    p = G.MultiplyPoints(u1, Q, u2)
 
-    nV    = oP.nX % order
-    return nV == r
+    v = p.x % order
+    return v == r
 
 ### PUBLIC FUNCTIONS ##########################################################
 def generate_key_pair(G):
+    random_generator = hash_drbg.HashDRBG()
+
     if G.order == None:
         raise RuntimeError("Base point must have order.")
 
-    random_generator = hash_drbg.HashDRBG()
-
     key_size = log(ec.leftmost_bit(G.order)) / log(2)
-    key_size = ceil(key_size) / 2
+    key_size = int(ceil(key_size) / 2)
     private_key = 1
 
     while private_key <= 1:
@@ -79,5 +79,10 @@ def generate_key_pair(G):
     return (private_key, G * private_key)
 
 def sign(message, G, d):
-    r = hash_drbg.get_entropy(1024)
-    return _sign(long(sha256(message).hexdigest, 16), G, d, k)
+    random_generator = hash_drbg.HashDRBG()
+    k = random_generator(128)
+
+    return _sign(long(sha256(message).hexdigest(), 16), G, d, k)
+
+def verify(r, s, message, G, Q):
+    return _verify(r, s, long(sha256(message).hexdigest(), 16), G, Q)

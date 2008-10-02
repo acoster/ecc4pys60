@@ -68,6 +68,7 @@ def _hash_df(input, number_of_bits):
     return long(temp[:number_of_bits / 4], 16)
 
 class HashDRBG(object):
+
     #initial nonce
     __initial_nonce = int(time.time())
 
@@ -103,6 +104,3 @@ class HashDRBG(object):
         self.__reseed_counter += 1
 
         return result
-
-a = HashDRBG()
-print "%x" % (a(128),)
