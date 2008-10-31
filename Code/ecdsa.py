@@ -21,6 +21,11 @@ from modular import mod_inverse
 
 __all__ = ['generate_key_pair', 'sign']
 
+_random = None
+
+class InvalidRandomNumber(Exception):
+    pass
+
 ### INTERNAL FUNCTIONS ########################################################
 def _sign(e, G, d, k):
     if G.order == None:
@@ -32,12 +37,12 @@ def _sign(e, G, d, k):
     r = p.x
 
     if r == 0:
-        raise RuntimeError("Invalid random number provided (r == 0)")
+        raise InvalidRandomNumber("Invalid random number provided (r == 0)")
 
     s = (mod_inverse(k, order) * (e + (d * r) % order)) % order
 
     if s == 0:
-        raise RuntimeError("Invalid random number provided (s == 0)")
+        raise InvalidRandomNumber("Invalid random number provided (s == 0)")
 
     return (r, s)
 
@@ -60,9 +65,16 @@ def _verify(r, s, e, G, Q):
     v = p.x % order
     return v == r
 
+
 ### PUBLIC FUNCTIONS ##########################################################
 def generate_key_pair(G):
-    random_generator = hash_drbg.HashDRBG()
+    """
+    Returns a tuple containing the private key (a long integer) and the
+    public key (the point G multiplied by the private key).
+
+    """
+    if random == None:
+        random = hash_drbg.HashDRBG()
 
     if G.order == None:
         raise RuntimeError("Base point must have order.")
@@ -72,17 +84,29 @@ def generate_key_pair(G):
     private_key = 1
 
     while private_key <= 1:
-        private_key = random_generator(key_size) #generates a random number
+        private_key = random(key_size) #generates a random number
                                                  #with twice the required bits
         private_key %= G.order
 
     return (private_key, G * private_key)
 
 def sign(message, G, d):
-    random_generator = hash_drbg.HashDRBG()
-    k = random_generator(128)
+    """Signs the string `message` using the private key `d` and the
+    point `G`.
+
+    """
+
+    if random == None:
+        random = hash_drbg.HashDRBG()
+
+    random = hash_drbg.HashDRBG()
+    k = random(128)
 
     return _sign(long(sha256(message).hexdigest(), 16), G, d, k)
 
 def verify(r, s, message, G, Q):
+    """Verifies if the message signature (r, s) is valid to the public
+    public key Q.
+
+    """
     return _verify(r, s, long(sha256(message).hexdigest(), 16), G, Q)

@@ -1,6 +1,14 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
+"""Elliptic curve over a prime field implementation.
+
+This module offers two classes, `EllipticCurvePrime`, that implements
+an elliptic curve over a prime field, and `CECPoint`, which implements
+a point of an elliptic curve.
+
+"""
+
 __version__ = "$Revision$"
 # $Id$
 
@@ -13,7 +21,7 @@ if os.name == 'e32':
 
 from modular import mod_inverse
 
-__all__ = ['leftmost_bit', 'EllipticCurvePrime', 'ECPoint']
+__all__ = ['leftmost_bit', 'EllipticCurvePrime', 'ECPoint', 'infinity']
 
 def leftmost_bit(x):
     assert x > 0
@@ -24,6 +32,7 @@ def leftmost_bit(x):
     return result / 2
 
 class EllipticCurvePrime(object):
+
     """
     """
 
@@ -50,6 +59,13 @@ class EllipticCurvePrime(object):
 
 
 class ECPoint(object):
+
+    """Implementation of a point on an elliptic curve over a prime
+    field. This class offers overloaded operators, so "elliptic curve"
+    arithmetic can ben expressed as normal arithmetic.
+
+    """
+
     def __init__(self, curve = None, x = None, y = None, order = None):
         self.__curve = curve
         self.__order = order
@@ -149,6 +165,10 @@ class ECPoint(object):
 
     # Returns self * k + oOtherPoint * l
     def MultiplyPoints(self, k, Q, l):
+        """Shamir's trick implementation. Returns 
+        self * k + Q * l
+
+        """
         R = infinity
         PQ = self + Q
         i = max(leftmost_bit(k), leftmost_bit(l))
