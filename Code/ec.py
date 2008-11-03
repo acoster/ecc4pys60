@@ -127,6 +127,9 @@ class ECPoint(object):
 
         assert right > 0
 
+        if right == 2:
+            return self.double()
+
         right3 = 3 * right
         i = leftmost_bit(right3) / 2
         minus_self = -self
