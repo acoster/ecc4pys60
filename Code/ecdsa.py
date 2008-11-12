@@ -19,9 +19,9 @@ import ec
 import hash_drbg
 from modular import mod_inverse
 
-__all__ = ['generate_key_pair', 'sign']
+__all__ = ['generate_key_pair', 'sign', 'verify']
 
-_random = None
+random = None
 
 class InvalidRandomNumber(Exception):
     pass
@@ -33,7 +33,7 @@ def _sign(e, G, d, k):
 
     order = G.order
     k = k % order
-    p = k * G
+    p = G * k
     r = p.x
 
     if r == 0:
@@ -73,6 +73,9 @@ def generate_key_pair(G):
     public key (the point G multiplied by the private key).
 
     """
+
+    global random
+
     if random == None:
         random = hash_drbg.HashDRBG()
 
@@ -85,7 +88,7 @@ def generate_key_pair(G):
 
     while private_key <= 1:
         private_key = random(key_size) #generates a random number
-                                                 #with twice the required bits
+                                       #with twice the required bits
         private_key %= G.order
 
     return (private_key, G * private_key)
@@ -96,10 +99,11 @@ def sign(message, G, d):
 
     """
 
-    if random == None:
+    global random
+
+    if random is None:
         random = hash_drbg.HashDRBG()
 
-    random = hash_drbg.HashDRBG()
     k = random(128)
 
     return _sign(long(sha256(message).hexdigest(), 16), G, d, k)
