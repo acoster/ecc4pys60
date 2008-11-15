@@ -6,6 +6,7 @@ __version__ = "$Revision$"
 
 import os
 import sys
+from time import clock
 from math import log, ceil
 
 # checks if we are running from a s60 phone and modifies include path
@@ -17,6 +18,7 @@ else:
 
 import ec
 import hash_drbg
+import nist_curves
 from modular import mod_inverse
 
 __all__ = ['generate_key_pair', 'sign', 'verify']
@@ -93,8 +95,10 @@ def generate_key_pair(G):
 
     return (private_key, G * private_key)
 
-def sign(message, G, d):
-    """Signs the string `message` using the private key `d` and the
+
+def sign(message, G, d, timing_list = None):
+    """
+    Signs the string `message` using the private key `d` and the
     point `G`.
 
     """
@@ -106,11 +110,61 @@ def sign(message, G, d):
 
     k = random(128)
 
-    return _sign(long(sha256(message).hexdigest(), 16), G, d, k)
+    if timing_list == None:
+        return _sign(long(sha256(message).hexdigest(), 16), G, d, k)
 
-def verify(r, s, message, G, Q):
+    begin_time = clock()
+    signature = _sign(message, G, d, k)
+    timing_list.append(clock() - begin_time)
+
+    return signature
+
+
+def verify(r, s, message, G, Q, timing_list = None):
     """Verifies if the message signature (r, s) is valid to the public
     public key Q.
 
     """
-    return _verify(r, s, long(sha256(message).hexdigest(), 16), G, Q)
+
+    if timing_list == None:
+        return _verify(r, s, long(sha256(message).hexdigest(), 16), G, Q)
+
+    begin_time = clock()
+    result = _verify(r, s, message, G, Q)
+    timing_list.append(clock() - begin_time)
+
+    return result
+
+
+### STATS STUFF ###############################################################
+def run_stats():
+    """
+    Collects stats to signature and signature verification.
+
+    """
+
+    time_signature    = {}
+    time_verification = {}
+
+    # this should speed up things
+    message = "Alice, send me 100 bucks. --Bob"
+    message = long(sha256(message).hexdigest(), 16)
+
+    curvas = [(i, getattr(nist_curves, i)) for i in dir(nist_curves) if
+                                                    i.startswith("point_p")]
+
+    for name, point in curvas:
+        priv_key, pub_key = generate_key_pair(point)
+        time_signature[name] = []
+        time_verification[name] = []
+
+        for i in xrange(30):
+            r, s = sign(message, point, priv_key, time_signature[name])
+            status = verify(r, s, message, point, pub_key,
+                                                    time_verification[name])
+
+        print "%s done" % (name, )
+
+    return (time_signature, time_verification)
+
+results = run_stats()

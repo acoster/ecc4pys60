@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf8 -*-
 
+__version__ = "$Revision$"
+# $Id$
+
 import math
 import random
 
@@ -11,28 +14,46 @@ import sys
 if os.name == 'e32':
   sys.path.append('e:\ecc4pys60')
 
-# $Id$
-__version__   = "$Revision$"
-__author__    = "Alexandre Coster"
-__contact__   = "acoster at inf dot ufrgs dot br"
-__copyright__ = "Copyright (C) 2008 by  Alexandre Coster"
 
-def mod_inverse(nValue, nModulus):
-  """Inverse of a mod m."""
 
-  if nValue < 0 or nModulus <= nValue:
-    nValue %= nModulus
+def mod_inverse(a, modulus):
+    """
+    Inverse of a mod m.
 
-  nC,  nD = nValue, nModulus
-  nUC, nVC, nUD, nVD = 1, 0, 0, 1
+    """
 
-  while nC != 0:
-    nQ, nC, nD = divmod(nD, nC) + (nC,)
-    nUC, nVC, nUD, nVD = nUD - nQ * nUC, nVD - nQ * nVC, nUC, nVC
+    if a < 0 or modulus <= a:
+        a %= modulus
 
-  # asserts the number has a modular inverse
-  assert nD == 1
+    c, d = a, modulus
+    uc, vc, ud, vd = 1, 0, 0, 1
 
-  if nUD > 0:
-    return nUD
-  return nUD + nModulus
+    while c != 0:
+        q, c, d = divmod(d, c) + (c,)
+        uc, vc, ud, vd = ud - q * uc, vd - q * vc, uc, vc
+
+    # asserts the number has a modular inverse
+    assert d == 1
+
+    if ud > 0:
+        return ud
+    return ud + modulus
+
+def power(a, m, n):
+    """
+    Fast implementation of a**m % n
+
+    """
+
+    assert m >= 0
+    assert n >= 1
+
+    ans = 1
+    apow = a
+
+    while m != 0:
+        if m%2 != 0:
+            ans = (ans * apow) % n
+        apow = (apow * apow) % n
+        m /= 2
+    return ans % n
