@@ -12,13 +12,6 @@ a point of an elliptic curve.
 __version__ = "$Revision$"
 # $Id$
 
-import sys
-import os
-
-# checks if we are running from a s60 phone and modifies include path
-if os.name == 'e32':
-    sys.path.append('e:\ecc4pys60')
-
 from modular import mod_inverse
 
 __all__ = ['leftmost_bit', 'EllipticCurvePrime', 'ECPoint', 'infinity']

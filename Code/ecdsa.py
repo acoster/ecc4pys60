@@ -5,13 +5,11 @@ __version__ = "$Revision$"
 # $Id$
 
 import os
-import sys
 from time import clock
 from math import log, ceil
 
 # checks if we are running from a s60 phone and modifies include path
 if os.name == 'e32':
-    sys.path.append('e:\ecc4pys60')
     from pys60crypto import sha256
 else:
     from hashlib import sha256

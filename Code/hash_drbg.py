@@ -7,15 +7,12 @@ __version__ = "$Revision$"
 from math import ceil
 import random
 import time
-import sys
 import os
 
 # platform dependant imports
 if os.name == 'e32':
     import camera
     from pys60crypto import sha256
-
-    sys.path.append('e:\ecc4pys60')
 else:
     from hashlib import sha256
 

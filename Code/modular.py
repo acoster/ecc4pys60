@@ -7,15 +7,6 @@ __version__ = "$Revision$"
 import math
 import random
 
-# checks if we are running from a s60 phone and modifies include path
-import os
-import sys
-
-if os.name == 'e32':
-  sys.path.append('e:\ecc4pys60')
-
-
-
 def mod_inverse(a, modulus):
     """
     Inverse of a mod m.
